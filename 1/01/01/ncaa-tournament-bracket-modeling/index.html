@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.81.0" />
+
+
+<title>NCAA Tournament Bracket Modeling - Austin Kingsley&#39;s Github Site</title>
+<meta property="og:title" content="NCAA Tournament Bracket Modeling - Austin Kingsley&#39;s Github Site">
+
+
+  <link href='/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://austinkingsley.github.io">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/KingsleyATK">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">8 min read</span>
+    
+
+    <h1 class="article-title">NCAA Tournament Bracket Modeling</h1>
+
+    
+    <span class="article-date">0001-01-01</span>
+    
+
+    <div class="article-content">
+      
+<script src="/1/01/01/ncaa-tournament-bracket-modeling/index_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="crunching-the-numbers-on-the-field-of-64" class="section level2">
+<h2>Crunching the Numbers on the Field of 64</h2>
+<p>It’s March, which means it’s time for Model Madness (no, I haven’t trademarked that phrase).</p>
+<p>Really, though, as the annual ritual of stressing over bracket picks arrives, it’s time for the machines to take over. I’m making a model based on a few different statistics and variables, applying it to all the tournament teams, and selecting winners based on the probabilities given by the model.</p>
+<p>Let’s break all that down.</p>
+</div>
+<div id="the-setup" class="section level1">
+<h1>The Setup</h1>
+<p>The most important aspect of the setup is which variables are being dropped in for all the calculations.</p>
+<pre class="r"><code>library(tidymodels)</code></pre>
+<pre><code>## -- Attaching packages -------------------------------------- tidymodels 0.1.2 --</code></pre>
+<pre><code>## v broom     0.7.4      v recipes   0.1.15
+## v dials     0.0.9      v rsample   0.0.8 
+## v dplyr     1.0.2      v tibble    3.0.6 
+## v ggplot2   3.3.2      v tidyr     1.1.2 
+## v infer     0.5.4      v tune      0.1.2 
+## v modeldata 0.1.0      v workflows 0.2.1 
+## v parsnip   0.1.5      v yardstick 0.0.7 
+## v purrr     0.3.4</code></pre>
+<pre><code>## -- Conflicts ----------------------------------------- tidymodels_conflicts() --
+## x purrr::discard() masks scales::discard()
+## x dplyr::filter()  masks stats::filter()
+## x dplyr::lag()     masks stats::lag()
+## x recipes::step()  masks stats::step()</code></pre>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## -- Attaching packages --------------------------------------- tidyverse 1.3.0 --</code></pre>
+<pre><code>## v readr   1.3.1     v forcats 0.5.0
+## v stringr 1.4.0</code></pre>
+<pre><code>## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+## x readr::col_factor() masks scales::col_factor()
+## x purrr::discard()    masks scales::discard()
+## x dplyr::filter()     masks stats::filter()
+## x stringr::fixed()    masks recipes::fixed()
+## x dplyr::lag()        masks stats::lag()
+## x readr::spec()       masks yardstick::spec()</code></pre>
+<pre class="r"><code>library(kableExtra)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;kableExtra&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     group_rows</code></pre>
+<pre class="r"><code>library(zoo)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;zoo&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     as.Date, as.Date.numeric</code></pre>
+<pre class="r"><code>games &lt;- read_csv(&quot;cbblogs1521.csv&quot;) %&gt;% mutate(
+  Possessions = .5*(TeamFGA - TeamOffRebounds + TeamTurnovers + (.475 * TeamFTA)) + .5*(OpponentFGA - OpponentOffRebounds + OpponentTurnovers + (.475 * OpponentFTA)),
+  PPP = TeamScore/Possessions) %&gt;%
+  group_by(Team, Season) %&gt;%
+  mutate(
+  Rolling_Mean_Possessions = rollmean(Possessions, k=5, fill=Possessions),
+  Rolling_Mean_PPP = rollmean(PPP, k=5, fill=PPP),
+  Rolling_Mean_3PPCT = rollmean(Team3PPCT, k=5, fill=Team3PPCT),
+  Rolling_Mean_FGA = rollmean(TeamFGA, k=5, fill=TeamFGA)
+  ) %&gt;% ungroup() %&gt;% 
+  mutate(
+    Location = case_when(
+    str_trim(HomeAway) == &quot;@&quot; ~ &quot;A&quot;,
+    str_trim(HomeAway) == &quot;N&quot; ~ &quot;N&quot;,
+    TRUE ~ &quot;H&quot;
+  ),
+ Outcome = case_when(
+  grepl(&quot;W&quot;, W_L) ~ &quot;W&quot;, 
+  grepl(&quot;L&quot;, W_L) ~ &quot;L&quot;
+ )
+) %&gt;%
+  mutate(Outcome = as.factor(Outcome))</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_double(),
+##   Season = col_character(),
+##   Date = col_date(format = &quot;&quot;),
+##   TeamFull = col_character(),
+##   Opponent = col_character(),
+##   HomeAway = col_character(),
+##   W_L = col_character(),
+##   URL = col_character(),
+##   Conference = col_character(),
+##   Team = col_character()
+## )</code></pre>
+<pre><code>## See spec(...) for full column specifications.</code></pre>
+<p>Selecting the variables for this model took a combination of curiosity and deductive reasoning. Possessions and points per possession are largely derived from KenPom. It’s a strategy of finding out how many times a team has the ball and how successful those teams are at using those possessions. That’s fairly reasonable assessment of team strength.</p>
+<p>Those metrics are pressed into a rolling mean. This gives adjusted averages over the last several games that a team has played. In this case, I decided to roll my variables back to the last five games. There’s no super specific reason it’s that particular number.</p>
+<p>There’s more flavors mixed into this, though. It’s where I put in my own biased spin. Along with possessions and PPP, I’ve added rolling means for team three-point shooting percentage and field goal attempts.</p>
+<p>I like shot takers and shot makers, particularly if it’s behind the arc. In this super rangy era of basketball that puts a huge emphasis on good guard shooting, I wanted to elevate teams that take plenty of shots and knock down threes.</p>
+<p>Will that be a successful strategy for projecting postseason matchups? We won’t really know until the games are played.</p>
+<pre class="r"><code>selectedgames &lt;- games %&gt;% select(Season, Team, Date, Opponent, Location, Outcome, Rolling_Mean_Possessions, Rolling_Mean_PPP, TeamSRS, Rolling_Mean_3PPCT, Rolling_Mean_FGA)</code></pre>
+<pre class="r"><code>opponentgames &lt;- selectedgames %&gt;% select(-Opponent) %&gt;% rename(Opponent = Team, Opponent_Rolling_Mean_Possessions = Rolling_Mean_Possessions, Opponent_Rolling_Mean_PPP = Rolling_Mean_PPP, Opponent_Rolling_Mean_3PPCT = Rolling_Mean_3PPCT, Opponent_Rolling_Mean_FGA = Rolling_Mean_FGA, OpponentSRS = TeamSRS)</code></pre>
+<pre class="r"><code>bothsides &lt;- selectedgames %&gt;% left_join(opponentgames, by=c(&quot;Opponent&quot;, &quot;Date&quot;, &quot;Season&quot;)) %&gt;% na.omit() %&gt;% select(-Outcome.y, -Location.x, -Location.y) %&gt;% rename(Outcome = Outcome.x)</code></pre>
+<p>The rounded-out version of our dataset shows that a Simple Ratings System is baked into these calculations, too. There’s also a corresponding OpponentSRS that gives a decent glimpse at strength of schedule.</p>
+<p>Now, it’s time to build the model. This one is a logistic regression. The step-by-step process of creating the components is fairly straightforward.</p>
+<pre class="r"><code>bracket_split &lt;- initial_split(bothsides, prop = .8)
+bracket_train &lt;- training(bracket_split)
+bracket_test &lt;- testing(bracket_split)</code></pre>
+<p>Recipe goes here.</p>
+<pre class="r"><code>log_recipe &lt;- 
+  recipe(Outcome ~ ., data = bracket_train) %&gt;% 
+  update_role(Team, Opponent, Date, Season, new_role = &quot;ID&quot;) %&gt;%
+  step_normalize(all_predictors())
+
+summary(log_recipe)</code></pre>
+<pre><code>## # A tibble: 15 x 4
+##    variable                          type    role      source  
+##    &lt;chr&gt;                             &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;   
+##  1 Season                            nominal ID        original
+##  2 Team                              nominal ID        original
+##  3 Date                              date    ID        original
+##  4 Opponent                          nominal ID        original
+##  5 Rolling_Mean_Possessions          numeric predictor original
+##  6 Rolling_Mean_PPP                  numeric predictor original
+##  7 TeamSRS                           numeric predictor original
+##  8 Rolling_Mean_3PPCT                numeric predictor original
+##  9 Rolling_Mean_FGA                  numeric predictor original
+## 10 Opponent_Rolling_Mean_Possessions numeric predictor original
+## 11 Opponent_Rolling_Mean_PPP         numeric predictor original
+## 12 OpponentSRS                       numeric predictor original
+## 13 Opponent_Rolling_Mean_3PPCT       numeric predictor original
+## 14 Opponent_Rolling_Mean_FGA         numeric predictor original
+## 15 Outcome                           nominal outcome   original</code></pre>
+<p>Model goes here.</p>
+<pre class="r"><code>log_mod &lt;- 
+  logistic_reg() %&gt;% 
+  set_engine(&quot;glm&quot;) %&gt;%
+  set_mode(&quot;classification&quot;)</code></pre>
+<p>And the workflow.</p>
+<pre class="r"><code>bracket_workflow &lt;- 
+  workflow() %&gt;% 
+  add_model(log_mod) %&gt;% 
+  add_recipe(log_recipe)</code></pre>
+<p>Fit the model.</p>
+<pre class="r"><code>log_fit &lt;- 
+  bracket_workflow %&gt;% 
+  fit(data = bracket_train)</code></pre>
+<p>Get predictions from the training data.</p>
+<pre class="r"><code>trainpredict &lt;- log_fit %&gt;% predict(new_data = bracket_train) %&gt;%
+  bind_cols(bracket_train)
+
+trainpredict</code></pre>
+<pre><code>## # A tibble: 38,373 x 16
+##    .pred_class Season Team  Date       Opponent Outcome Rolling_Mean_Po~
+##    &lt;fct&gt;       &lt;chr&gt;  &lt;chr&gt; &lt;date&gt;     &lt;chr&gt;    &lt;fct&gt;              &lt;dbl&gt;
+##  1 L           2014-~ Abil~ 2014-11-22 Duquesne L                   73.0
+##  2 L           2014-~ Abil~ 2014-12-04 Sacrame~ W                   70.4
+##  3 L           2014-~ Abil~ 2014-12-06 Houston  L                   67.4
+##  4 L           2014-~ Abil~ 2014-12-17 Loyola ~ L                   66.7
+##  5 W           2014-~ Abil~ 2015-01-04 Central~ W                   70.6
+##  6 W           2014-~ Abil~ 2015-01-10 Nicholl~ W                   70.9
+##  7 L           2014-~ Abil~ 2015-01-13 Northwe~ W                   70.0
+##  8 L           2014-~ Abil~ 2015-01-20 McNeese~ L                   66.7
+##  9 L           2014-~ Abil~ 2015-01-24 Incarna~ L                   67.4
+## 10 L           2014-~ Abil~ 2015-01-26 Sam Hou~ L                   67.7
+## # ... with 38,363 more rows, and 9 more variables: Rolling_Mean_PPP &lt;dbl&gt;,
+## #   TeamSRS &lt;dbl&gt;, Rolling_Mean_3PPCT &lt;dbl&gt;, Rolling_Mean_FGA &lt;dbl&gt;,
+## #   Opponent_Rolling_Mean_Possessions &lt;dbl&gt;, Opponent_Rolling_Mean_PPP &lt;dbl&gt;,
+## #   OpponentSRS &lt;dbl&gt;, Opponent_Rolling_Mean_3PPCT &lt;dbl&gt;,
+## #   Opponent_Rolling_Mean_FGA &lt;dbl&gt;</code></pre>
+<p>Now insert some probabilities and bind them to the predictions we already have.</p>
+<pre class="r"><code>trainpredict &lt;- log_fit %&gt;% predict(new_data = bracket_train, type=&quot;prob&quot;) %&gt;%
+  bind_cols(trainpredict)
+
+trainpredict</code></pre>
+<pre><code>## # A tibble: 38,373 x 18
+##    .pred_L .pred_W .pred_class Season Team  Date       Opponent Outcome
+##      &lt;dbl&gt;   &lt;dbl&gt; &lt;fct&gt;       &lt;chr&gt;  &lt;chr&gt; &lt;date&gt;     &lt;chr&gt;    &lt;fct&gt;  
+##  1   0.964  0.0360 L           2014-~ Abil~ 2014-11-22 Duquesne L      
+##  2   0.907  0.0927 L           2014-~ Abil~ 2014-12-04 Sacrame~ W      
+##  3   0.923  0.0767 L           2014-~ Abil~ 2014-12-06 Houston  L      
+##  4   0.986  0.0138 L           2014-~ Abil~ 2014-12-17 Loyola ~ L      
+##  5   0.171  0.829  W           2014-~ Abil~ 2015-01-04 Central~ W      
+##  6   0.381  0.619  W           2014-~ Abil~ 2015-01-10 Nicholl~ W      
+##  7   0.836  0.164  L           2014-~ Abil~ 2015-01-13 Northwe~ W      
+##  8   0.656  0.344  L           2014-~ Abil~ 2015-01-20 McNeese~ L      
+##  9   0.909  0.0908 L           2014-~ Abil~ 2015-01-24 Incarna~ L      
+## 10   0.968  0.0319 L           2014-~ Abil~ 2015-01-26 Sam Hou~ L      
+## # ... with 38,363 more rows, and 10 more variables:
+## #   Rolling_Mean_Possessions &lt;dbl&gt;, Rolling_Mean_PPP &lt;dbl&gt;, TeamSRS &lt;dbl&gt;,
+## #   Rolling_Mean_3PPCT &lt;dbl&gt;, Rolling_Mean_FGA &lt;dbl&gt;,
+## #   Opponent_Rolling_Mean_Possessions &lt;dbl&gt;, Opponent_Rolling_Mean_PPP &lt;dbl&gt;,
+## #   OpponentSRS &lt;dbl&gt;, Opponent_Rolling_Mean_3PPCT &lt;dbl&gt;,
+## #   Opponent_Rolling_Mean_FGA &lt;dbl&gt;</code></pre>
+<p>That’s the framework. The only step now is to plug in all the teams, check out the probabilities, and build the bracket.</p>
+<p>Here’s an example of one regional tibble. The successive rounds have the same tibble format, but the teams are based on the probabilities given from the round prior. Pick the winners and plug them in.</p>
+<pre class="r"><code>midwest &lt;- tibble(
+  Team=&quot;Illinois&quot;,
+  Opponent=&quot;Drexel&quot;,
+  Date = as.Date(&quot;2021-03-19&quot;)
+) %&gt;% add_row(
+  Team=&quot;Loyola (IL)&quot;,
+  Opponent=&quot;Georgia Tech&quot;,
+  Date = as.Date(&quot;2021-03-19&quot;)
+) %&gt;% add_row(
+  Team=&quot;Tennessee&quot;,
+  Opponent=&quot;Oregon State&quot;,
+  Date = as.Date(&quot;2021-03-19&quot;)
+) %&gt;% add_row(
+  Team=&quot;Oklahoma State&quot;,
+  Opponent=&quot;Liberty&quot;,
+  Date = as.Date(&quot;2021-03-19&quot;)
+) %&gt;% add_row(
+  Team=&quot;San Diego State&quot;,
+  Opponent=&quot;Syracuse&quot;,
+  Date = as.Date(&quot;2021-03-19&quot;)
+) %&gt;% add_row(
+  Team=&quot;West Virginia&quot;,
+  Opponent=&quot;Morehead State&quot;,
+  Date = as.Date(&quot;2021-03-19&quot;)
+) %&gt;% add_row(
+  Team=&quot;Clemson&quot;,
+  Opponent=&quot;Rutgers&quot;,
+  Date = as.Date(&quot;2021-03-19&quot;)
+) %&gt;% add_row(
+  Team=&quot;Houston&quot;,
+  Opponent=&quot;Cleveland State&quot;,
+  Date = as.Date(&quot;2021-03-19&quot;)
+)</code></pre>
+<p>The tibble teams are applied to the model here.</p>
+<pre class="r"><code>midwestregional &lt;- log_fit %&gt;% predict(new_data = midwest) %&gt;%
+  bind_cols(midwest) 
+
+midwestregional &lt;- log_fit %&gt;% predict(new_data = midwestregional, type=&quot;prob&quot;) %&gt;%
+  bind_cols(midwestregional)</code></pre>
+<pre class="r"><code>midwestregional %&gt;% select(Team, .pred_class, Opponent, .pred_W) %&gt;% kable() %&gt;% kable_styling(bootstrap_options = c(&quot;striped&quot;, &quot;condensed&quot;))</code></pre>
+<p>After some computer churning, we get the bracket. The winning criteria for this one was simple: anything over 50% is a win. I don’t care about the margin. Trust the model.</p>
+<p>I’m going to bestow upon you the entire bracket: <a href="https://fantasy.espn.com/tournament-challenge-bracket/2021/en/entry?entryID=48107927" class="uri">https://fantasy.espn.com/tournament-challenge-bracket/2021/en/entry?entryID=48107927</a></p>
+<p>It’s hilarious. The entire Final Four is made up of Big Ten teams: Iowa, Michigan, Purdue, and Illinois. In fact, six out of eight teams in the regional final are from the Big Ten when you throw in Ohio State and Maryland.</p>
+<p>Of course, SRS is a component of this model. It likes those strong teams with strong schedules. The Big Ten has that. Has this caused the Big Ten supremacy? Perhaps.</p>
+<p>It’s also possible that the Big Ten is abnormally skilled behind the three-point line. That’s a part of this. Maybe the teams take a lot of shots in the conference.</p>
+<p>Or, the final theory is that this bracket is divinely inspired and full of truths. The Big Ten is the greatest basketball conference on Earth.</p>
+<p>The only way to find out is to let the madness begin.</p>
+</div>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/r.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+  </body>
+</html>
+

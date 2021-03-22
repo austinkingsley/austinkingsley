@@ -10,7 +10,7 @@
     <item>
       <title>Me</title>
       <link>/about/</link>
-      <pubDate>Thu, 11 Mar 2021 21:48:51 -0700</pubDate>
+      <pubDate>Thu, 18 Mar 2021 21:48:51 -0700</pubDate>
       
       <guid>/about/</guid>
       <description>This is a test.</description>
@@ -44,6 +44,16 @@ summary(cars)## speed dist ## Min. : 4.0 Min. : 2.00 ## 1st Qu.:12.0 1st Qu.: 2
       
       <guid>/2015/01/01/lorem-ipsum/</guid>
       <description>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</description>
+    </item>
+    
+    <item>
+      <title>NCAA Tournament Bracket Modeling</title>
+      <link>/1/01/01/ncaa-tournament-bracket-modeling/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/1/01/01/ncaa-tournament-bracket-modeling/</guid>
+      <description>Crunching the Numbers on the Field of 64It’s March, which means it’s time for Model Madness (no, I haven’t trademarked that phrase).
+Really, though, as the annual ritual of stressing over bracket picks arrives, it’s time for the machines to take over. I’m making a model based on a few different statistics and variables, applying it to all the tournament teams, and selecting winners based on the probabilities given by the model.</description>
     </item>
     
     <item>
