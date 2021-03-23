@@ -123,6 +123,8 @@
 <pre><code>## The following objects are masked from &#39;package:base&#39;:
 ## 
 ##     as.Date, as.Date.numeric</code></pre>
+<pre class="r"><code>library(reactable)</code></pre>
+<pre><code>## Warning: package &#39;reactable&#39; was built under R version 4.0.4</code></pre>
 <pre class="r"><code>games &lt;- read_csv(&quot;cbblogs1521.csv&quot;) %&gt;% mutate(
   Possessions = .5*(TeamFGA - TeamOffRebounds + TeamTurnovers + (.475 * TeamFTA)) + .5*(OpponentFGA - OpponentOffRebounds + OpponentTurnovers + (.475 * OpponentFTA)),
   PPP = TeamScore/Possessions) %&gt;%
@@ -168,6 +170,9 @@
 <pre class="r"><code>opponentgames &lt;- selectedgames %&gt;% select(-Opponent) %&gt;% rename(Opponent = Team, Opponent_Rolling_Mean_Possessions = Rolling_Mean_Possessions, Opponent_Rolling_Mean_PPP = Rolling_Mean_PPP, Opponent_Rolling_Mean_3PPCT = Rolling_Mean_3PPCT, Opponent_Rolling_Mean_FGA = Rolling_Mean_FGA, OpponentSRS = TeamSRS)</code></pre>
 <pre class="r"><code>bothsides &lt;- selectedgames %&gt;% left_join(opponentgames, by=c(&quot;Opponent&quot;, &quot;Date&quot;, &quot;Season&quot;)) %&gt;% na.omit() %&gt;% select(-Outcome.y, -Location.x, -Location.y) %&gt;% rename(Outcome = Outcome.x)</code></pre>
 <p>The rounded-out version of our dataset shows that a Simple Ratings System is baked into these calculations, too. There’s also a corresponding OpponentSRS that gives a decent glimpse at strength of schedule.</p>
+</div>
+<div id="the-model" class="section level1">
+<h1>The Model</h1>
 <p>Now, it’s time to build the model. This one is a logistic regression. The step-by-step process of creating the components is fairly straightforward.</p>
 <pre class="r"><code>bracket_split &lt;- initial_split(bothsides, prop = .8)
 bracket_train &lt;- training(bracket_split)
@@ -219,16 +224,16 @@ trainpredict</code></pre>
 <pre><code>## # A tibble: 38,373 x 16
 ##    .pred_class Season Team  Date       Opponent Outcome Rolling_Mean_Po~
 ##    &lt;fct&gt;       &lt;chr&gt;  &lt;chr&gt; &lt;date&gt;     &lt;chr&gt;    &lt;fct&gt;              &lt;dbl&gt;
-##  1 L           2014-~ Abil~ 2014-11-22 Duquesne L                   73.0
-##  2 L           2014-~ Abil~ 2014-12-04 Sacrame~ W                   70.4
-##  3 L           2014-~ Abil~ 2014-12-06 Houston  L                   67.4
-##  4 L           2014-~ Abil~ 2014-12-17 Loyola ~ L                   66.7
-##  5 W           2014-~ Abil~ 2015-01-04 Central~ W                   70.6
-##  6 W           2014-~ Abil~ 2015-01-10 Nicholl~ W                   70.9
-##  7 L           2014-~ Abil~ 2015-01-13 Northwe~ W                   70.0
-##  8 L           2014-~ Abil~ 2015-01-20 McNeese~ L                   66.7
-##  9 L           2014-~ Abil~ 2015-01-24 Incarna~ L                   67.4
-## 10 L           2014-~ Abil~ 2015-01-26 Sam Hou~ L                   67.7
+##  1 L           2014-~ Abil~ 2014-11-19 Tulsa    L                   79.6
+##  2 L           2014-~ Abil~ 2014-11-22 Duquesne L                   73.0
+##  3 L           2014-~ Abil~ 2014-12-04 Sacrame~ W                   70.4
+##  4 L           2014-~ Abil~ 2014-12-06 Houston  L                   67.4
+##  5 L           2014-~ Abil~ 2014-12-17 Loyola ~ L                   66.7
+##  6 W           2014-~ Abil~ 2014-12-22 South C~ W                   66.6
+##  7 W           2014-~ Abil~ 2014-12-23 Arkansa~ W                   68.2
+##  8 L           2014-~ Abil~ 2014-12-28 Grand C~ L                   70.9
+##  9 W           2014-~ Abil~ 2015-01-04 Central~ W                   70.6
+## 10 W           2014-~ Abil~ 2015-01-10 Nicholl~ W                   70.9
 ## # ... with 38,363 more rows, and 9 more variables: Rolling_Mean_PPP &lt;dbl&gt;,
 ## #   TeamSRS &lt;dbl&gt;, Rolling_Mean_3PPCT &lt;dbl&gt;, Rolling_Mean_FGA &lt;dbl&gt;,
 ## #   Opponent_Rolling_Mean_Possessions &lt;dbl&gt;, Opponent_Rolling_Mean_PPP &lt;dbl&gt;,
@@ -242,16 +247,16 @@ trainpredict</code></pre>
 <pre><code>## # A tibble: 38,373 x 18
 ##    .pred_L .pred_W .pred_class Season Team  Date       Opponent Outcome
 ##      &lt;dbl&gt;   &lt;dbl&gt; &lt;fct&gt;       &lt;chr&gt;  &lt;chr&gt; &lt;date&gt;     &lt;chr&gt;    &lt;fct&gt;  
-##  1   0.964  0.0360 L           2014-~ Abil~ 2014-11-22 Duquesne L      
-##  2   0.907  0.0927 L           2014-~ Abil~ 2014-12-04 Sacrame~ W      
-##  3   0.923  0.0767 L           2014-~ Abil~ 2014-12-06 Houston  L      
-##  4   0.986  0.0138 L           2014-~ Abil~ 2014-12-17 Loyola ~ L      
-##  5   0.171  0.829  W           2014-~ Abil~ 2015-01-04 Central~ W      
-##  6   0.381  0.619  W           2014-~ Abil~ 2015-01-10 Nicholl~ W      
-##  7   0.836  0.164  L           2014-~ Abil~ 2015-01-13 Northwe~ W      
-##  8   0.656  0.344  L           2014-~ Abil~ 2015-01-20 McNeese~ L      
-##  9   0.909  0.0908 L           2014-~ Abil~ 2015-01-24 Incarna~ L      
-## 10   0.968  0.0319 L           2014-~ Abil~ 2015-01-26 Sam Hou~ L      
+##  1   0.926  0.0744 L           2014-~ Abil~ 2014-11-19 Tulsa    L      
+##  2   0.963  0.0370 L           2014-~ Abil~ 2014-11-22 Duquesne L      
+##  3   0.906  0.0944 L           2014-~ Abil~ 2014-12-04 Sacrame~ W      
+##  4   0.922  0.0783 L           2014-~ Abil~ 2014-12-06 Houston  L      
+##  5   0.986  0.0141 L           2014-~ Abil~ 2014-12-17 Loyola ~ L      
+##  6   0.412  0.588  W           2014-~ Abil~ 2014-12-22 South C~ W      
+##  7   0.456  0.544  W           2014-~ Abil~ 2014-12-23 Arkansa~ W      
+##  8   0.807  0.193  L           2014-~ Abil~ 2014-12-28 Grand C~ L      
+##  9   0.167  0.833  W           2014-~ Abil~ 2015-01-04 Central~ W      
+## 10   0.377  0.623  W           2014-~ Abil~ 2015-01-10 Nicholl~ W      
 ## # ... with 38,363 more rows, and 10 more variables:
 ## #   Rolling_Mean_Possessions &lt;dbl&gt;, Rolling_Mean_PPP &lt;dbl&gt;, TeamSRS &lt;dbl&gt;,
 ## #   Rolling_Mean_3PPCT &lt;dbl&gt;, Rolling_Mean_FGA &lt;dbl&gt;,
@@ -300,6 +305,9 @@ trainpredict</code></pre>
 midwestregional &lt;- log_fit %&gt;% predict(new_data = midwestregional, type=&quot;prob&quot;) %&gt;%
   bind_cols(midwestregional)</code></pre>
 <pre class="r"><code>midwestregional %&gt;% select(Team, .pred_class, Opponent, .pred_W) %&gt;% kable() %&gt;% kable_styling(bootstrap_options = c(&quot;striped&quot;, &quot;condensed&quot;))</code></pre>
+</div>
+<div id="the-big-disaster" class="section level1">
+<h1>The Big Disaster</h1>
 <p>After some computer churning, we get the bracket. The winning criteria for this one was simple: anything over 50% is a win. I don’t care about the margin. Trust the model.</p>
 <p>I’m going to bestow upon you the entire bracket: <a href="https://fantasy.espn.com/tournament-challenge-bracket/2021/en/entry?entryID=48107927" class="uri">https://fantasy.espn.com/tournament-challenge-bracket/2021/en/entry?entryID=48107927</a></p>
 <p>It’s hilarious. The entire Final Four is made up of Big Ten teams: Iowa, Michigan, Purdue, and Illinois. In fact, six out of eight teams in the regional final are from the Big Ten when you throw in Ohio State and Maryland.</p>
