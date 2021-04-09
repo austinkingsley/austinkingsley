@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.81.0" />
+
+
+<title>&#39;Oops.&#39; A Bracket Modeling Post Mortem - Austin Kingsley&#39;s Github Site</title>
+<meta property="og:title" content="&#39;Oops.&#39; A Bracket Modeling Post Mortem - Austin Kingsley&#39;s Github Site">
+
+
+  <link href='/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://austinkingsley.github.io">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/KingsleyATK">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">4 min read</span>
+    
+
+    <h1 class="article-title">&#39;Oops.&#39; A Bracket Modeling Post Mortem</h1>
+
+    
+    <span class="article-date">0001-01-01</span>
+    
+
+    <div class="article-content">
+      
+<script src="/1/01/01/oops.-a-bracket-modeling-post-mortem/index_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<p>The goal here was to create a model that would help predict NCAA Tournament games and perhaps beat a good majority of brackets on ESPN’s site.</p>
+<p>It did not go well.</p>
+<p>I should amend that. It did not go well for me. I have to applaud my classmates who found a ton of success using metrics that were far more predictive for this tournament.</p>
+<p>Time to revisit my own model, though. Upon creating my feature engineering, I said that I wanted to put a pretty big emphasis on “shot takers and shot makers.” So, naturally, I had a rolling mean of field goal attempts over a team’s last five games.</p>
+<p>However, I didn’t want to just reward any shot. Three-pointers, I thought, were the way to go. Add a rolling mean of three-point shooting percentage to the mix.</p>
+<p>Two other pieces of feature engineering in my model were possessions and points per possession. These are derived metrics that have proven to work in the past. Thus, they were baked into my model.</p>
+<p>Lastly, there was consideration given to the Simple Ratings System. The model used team and opponent SRS to get a decent baseline idea of team strength.</p>
+</div>
+<div id="what-happened" class="section level1">
+<h1>What happened?</h1>
+<p>Pain.</p>
+<p>The big red flag here had to be the model’s undying affinity to the Big Ten. It was absolutely ridiculous; a whopping six Big Ten made the Elite Eight, and the conference was represented in every spot in the Final Four. Homer.</p>
+<p>Let’s take a step back, though, and address some pitfalls in first-round matchups.</p>
+<p>The model shrugged off the idea that The Ohio State University could possibly lose to Oral Roberts. Nor could North Texas beat Purdue, the eventual national champion in my bracket. Oops.</p>
+<p>Using model probabilities presents the challenge of having to decide tossups. In my case, I always chose the higher probability, even if the margin was tiny.</p>
+<p>Sometimes that worked, sometimes it didn’t. My model was painfully close to pushing eventual Final Four team UCLA past BYU in the Round of 64. But, at 54 percent, I had to pick the Cougars.</p>
+<p>Another noteworthy failure on the coinflip was Texas Tech against Utah State. My model liked the Aggies to pull off the upset with a whopping 50.2% confidence. I got hosed.</p>
+<p>There were a few successful tossups, though. Florida bested Virginia Tech at only 53.4 percent. Syracuse was correctly tabbed for the upset over SDSU, albeit by only 53%.</p>
+<p>Unfortunately for me, any shortcomings in the opening round often had big implications for successive rounds. I already mentioned Ohio State, and they made the Elite Eight in my bracket. Who knows where UCLA could have gone if they were on the correct side of the coin.</p>
+<p>The best solution, though, probably would have been to simply build a better model.</p>
+</div>
+<div id="building-a-better-model" class="section level1">
+<h1>Building a better model</h1>
+<p>How did my feature engineering force my bracket to cave in on itself?</p>
+<p>Perhaps three-point shooting isn’t the best predictor of team success. Better yet, if a hot three-point shooting team gets cold under the pressure of the tournament, they’re probably screwed. Did I run into some of that in this modeling exercise? Maybe.</p>
+<p>There’s also something to be said about one single conference being so heavily represented in later rounds. What is the Big Ten up to?</p>
+<p>I’ve become incredibly suspicious of my inclusion of team and opponent SRS. All year, the Big Ten was hailed as the second coming. Top-to-bottom, they were supposedly the best thing ever. I have to imagine that SRS also echoed this idea. Now, in a season that is largely intra-conference play due to COVID-19, one strong conference can boost each other’s SRS to the moon. That’s what the Big Ten did.</p>
+<p>That’s not the only factor in my feature engineering, of course, and the Big Ten has some good three-point shooters. With the guards that Iowa and Michigan had, I’m not surprised to see them go far based on my variables.</p>
+</div>
+<div id="the-end" class="section level1">
+<h1>The end</h1>
+<p>The result was a 13th-place finish out of 17 brackets. We’ll get ’em next time.</p>
+</div>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+    
+
+    
+  </body>
+</html>
+

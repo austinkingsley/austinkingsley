@@ -38,6 +38,18 @@ summary(cars)## speed dist ## Min. : 4.0 Min. : 2.00 ## 1st Qu.:12.0 1st Qu.: 2
     </item>
     
     <item>
+      <title>&#39;Oops.&#39; A Bracket Modeling Post Mortem</title>
+      <link>/1/01/01/oops.-a-bracket-modeling-post-mortem/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/1/01/01/oops.-a-bracket-modeling-post-mortem/</guid>
+      <description>SetupThe goal here was to create a model that would help predict NCAA Tournament games and perhaps beat a good majority of brackets on ESPN’s site.
+It did not go well.
+I should amend that. It did not go well for me. I have to applaud my classmates who found a ton of success using metrics that were far more predictive for this tournament.
+Time to revisit my own model, though.</description>
+    </item>
+    
+    <item>
       <title>NCAA Tournament Bracket Modeling</title>
       <link>/1/01/01/ncaa-tournament-bracket-modeling/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
